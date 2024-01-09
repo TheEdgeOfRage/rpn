@@ -1,15 +1,11 @@
 package rpn
 
 import (
-	"errors"
 	"fmt"
 	"math"
 )
 
-var (
-	ErrStackEmpty      = errors.New("stack is empty")
-	ErrNotEnoughValues = errors.New("not enough values on stack")
-)
+var ErrNotEnoughValuesTmpl = "Need at least %d values on the stack to perform this operation"
 
 type Stack struct {
 	values []float64
@@ -22,7 +18,7 @@ func (s *Stack) Push(value float64) {
 func (s *Stack) Pop() (float64, error) {
 	count := s.Len()
 	if count == 0 {
-		return 0, ErrStackEmpty
+		return 0, fmt.Errorf(ErrNotEnoughValuesTmpl, 1)
 	}
 	value := s.values[count-1]
 	s.values = s.values[:count-1]
@@ -32,7 +28,7 @@ func (s *Stack) Pop() (float64, error) {
 func (s *Stack) Pop2() (float64, float64, error) {
 	count := s.Len()
 	if count < 2 {
-		return 0, 0, ErrNotEnoughValues
+		return 0, 0, fmt.Errorf(ErrNotEnoughValuesTmpl, 2)
 	}
 	a := s.values[count-1]
 	b := s.values[count-2]
@@ -47,7 +43,7 @@ func (s *Stack) Len() int {
 func (s *Stack) Swap() error {
 	count := s.Len()
 	if count < 2 {
-		return ErrNotEnoughValues
+		return fmt.Errorf(ErrNotEnoughValuesTmpl, 2)
 	}
 	a := s.values[count-1]
 	b := s.values[count-2]

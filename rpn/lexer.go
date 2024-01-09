@@ -11,7 +11,7 @@ type Lexer struct {
 	input *Input
 }
 
-func (l *Lexer) parseNumber() (float64, error) {
+func (l *Lexer) parseNumber(negative bool) (*Token, error) {
 	numStr := ""
 	char := l.input.NextChar()
 	for {
@@ -25,10 +25,14 @@ func (l *Lexer) parseNumber() (float64, error) {
 
 	num, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		return 0, err
+		return nil, err
+	}
+	if negative {
+		numStr = "-" + numStr
+		num = -num
 	}
 
-	return num, nil
+	return &Token{number, 0, num, numStr}, nil
 }
 
 func (l *Lexer) parseWord() (*Token, error) {
@@ -45,25 +49,25 @@ func (l *Lexer) parseWord() (*Token, error) {
 
 	switch word {
 	case "sqrt":
-		return &Token{unaryOp, sqrt, 0}, nil
+		return &Token{unaryOp, sqrt, 0, word}, nil
 	case "dec":
-		return &Token{dec, 0, 0}, nil
+		return &Token{dec, 0, 0, word}, nil
 	case "bin":
-		return &Token{bin, 0, 0}, nil
+		return &Token{bin, 0, 0, word}, nil
 	case "hex":
-		return &Token{hex, 0, 0}, nil
+		return &Token{hex, 0, 0, word}, nil
 	case "pi":
-		return &Token{number, 0, math.Pi}, nil
+		return &Token{number, 0, math.Pi, word}, nil
 	case "pop":
-		return &Token{pop, 0, 0}, nil
+		return &Token{pop, 0, 0, word}, nil
 	case "swap":
-		return &Token{swap, 0, 0}, nil
+		return &Token{swap, 0, 0, word}, nil
 	case "clr":
-		return &Token{clr, 0, 0}, nil
+		return &Token{clr, 0, 0, word}, nil
 	case "help":
-		return &Token{help, 0, 0}, nil
+		return &Token{help, 0, 0, word}, nil
 	case "exit":
-		return &Token{exit, 0, 0}, nil
+		return &Token{exit, 0, 0, word}, nil
 	default:
 		return nil, fmt.Errorf("Unknown input: %s", word)
 	}
@@ -71,7 +75,6 @@ func (l *Lexer) parseWord() (*Token, error) {
 
 func (l *Lexer) Parse(input string) ([]*Token, error) {
 	var err error
-	var num float64
 	var token *Token
 	l.input = NewInput(input)
 	tokens := []*Token{}
@@ -84,30 +87,29 @@ func (l *Lexer) Parse(input string) ([]*Token, error) {
 		switch char {
 		case '+':
 			l.input.Eat()
-			token = &Token{binaryOp, plus, 0}
+			token = &Token{binaryOp, plus, 0, string(char)}
 		case '-':
 			char = l.input.Eat()
 			if unicode.IsNumber(char) {
-				num, err = l.parseNumber()
-				token = &Token{number, 0, -num}
+				token, err = l.parseNumber(true)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				token = &Token{binaryOp, minus, 0}
+				token = &Token{binaryOp, minus, 0, string(char)}
 			}
 		case '*':
 			l.input.Eat()
-			token = &Token{binaryOp, multiply, 0}
+			token = &Token{binaryOp, multiply, 0, string(char)}
 		case '/':
 			l.input.Eat()
-			token = &Token{binaryOp, divide, 0}
+			token = &Token{binaryOp, divide, 0, string(char)}
 		case '%':
 			l.input.Eat()
-			token = &Token{binaryOp, mod, 0}
+			token = &Token{binaryOp, mod, 0, string(char)}
 		case '^':
 			l.input.Eat()
-			token = &Token{binaryOp, power, 0}
+			token = &Token{binaryOp, power, 0, string(char)}
 		case ' ':
 			l.input.Eat()
 			continue
@@ -115,24 +117,23 @@ func (l *Lexer) Parse(input string) ([]*Token, error) {
 			l.input.Eat()
 			continue
 		case 0x04: // Ctrl-D
-			token = &Token{exit, 0, 0}
+			token = &Token{exit, 0, 0, "^D"}
 		case '?':
 			l.input.Eat()
-			token = &Token{help, 0, 0}
+			token = &Token{help, 0, 0, string(char)}
 		default:
 			if unicode.IsNumber(char) {
-				num, err = l.parseNumber()
+				token, err = l.parseNumber(false)
 				if err != nil {
 					return nil, err
 				}
-				token = &Token{number, 0, num}
 			} else if unicode.IsLetter(char) {
 				token, err = l.parseWord()
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				return nil, fmt.Errorf("Unknown input: %c", char)
+				return nil, fmt.Errorf("Invalid input: %c", char)
 			}
 		}
 

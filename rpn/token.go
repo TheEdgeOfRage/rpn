@@ -32,4 +32,5 @@ type Token struct {
 	Type     TokenType
 	Operator Operator
 	Value    float64
+	Original string
 }

@@ -1,11 +1,9 @@
 package rpn
 
 import (
-	"errors"
+	"fmt"
 	"math"
 )
-
-var ErrExit = errors.New("exit")
 
 type RPN struct {
 	stack *Stack
@@ -62,10 +60,15 @@ func (r *RPN) Eval(input string) error {
 				if a == 0 {
 					r.stack.Push(b)
 					r.stack.Push(a)
-					return errors.New("can't divide by zero")
+					return fmt.Errorf("Can't divide by zero")
 				}
 				r.stack.Push(b / a)
 			case mod:
+				if a == 0 {
+					r.stack.Push(b)
+					r.stack.Push(a)
+					return fmt.Errorf("Can't divide by zero")
+				}
 				r.stack.Push(float64(int64(b) % int64(a)))
 			case power:
 				r.stack.Push(math.Pow(b, a))
@@ -94,9 +97,9 @@ func (r *RPN) Eval(input string) error {
 		case help:
 			printHelp()
 		case exit:
-			return ErrExit
+			return fmt.Errorf("exit")
 		default:
-			return errors.New("Unknown operation")
+			return fmt.Errorf("Operation not implemented: %s", token.Original)
 		}
 	}
 
